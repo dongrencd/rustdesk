@@ -42,6 +42,8 @@ class _TerminalPageState extends State<TerminalPage>
   final GlobalKey _keyboardKey = GlobalKey();
   double _keyboardHeight = 0;
   late bool _showTerminalExtraKeys;
+  // Ctrl lock state for floating keyboard: when true, /,|,~ keys send Ctrl versions
+  bool _ctrlLocked = false;
   // For iOS edge swipe gesture
   double _swipeStartX = 0;
   double _swipeCurrentX = 0;
@@ -324,14 +326,13 @@ class _TerminalPageState extends State<TerminalPage>
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Row 1: navigation and function keys
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildKeyButton('Esc'),
                 const SizedBox(width: 2),
-                _buildKeyButton('/'),
-                const SizedBox(width: 2),
-                _buildKeyButton('|'),
+                _buildKeyButton('Tab'),
                 const SizedBox(width: 2),
                 _buildKeyButton('Home'),
                 const SizedBox(width: 2),
@@ -342,12 +343,13 @@ class _TerminalPageState extends State<TerminalPage>
                 _buildKeyButton('PgUp'),
               ],
             ),
+            // Row 2: symbols and arrow keys
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildKeyButton('Tab'),
+                _buildKeyButton('/'),
                 const SizedBox(width: 2),
-                _buildKeyButton('Ctrl+C'),
+                _buildKeyButton('|'),
                 const SizedBox(width: 2),
                 _buildKeyButton('~'),
                 const SizedBox(width: 2),
@@ -360,8 +362,40 @@ class _TerminalPageState extends State<TerminalPage>
                 _buildKeyButton('PgDn'),
               ],
             ),
+            // Row 3: Ctrl toggle and Ctrl+X shortcut
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildCtrlKeyButton(),
+                const SizedBox(width: 2),
+                _buildKeyButton('Ctrl+X'),
+              ],
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Ctrl toggle button with highlighted locked state
+  Widget _buildCtrlKeyButton() {
+    return ElevatedButton(
+      onPressed: () {
+        setState(() {
+          _ctrlLocked = !_ctrlLocked;
+        });
+      },
+      child: Text('Ctrl'),
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size(48, 32),
+        padding: EdgeInsets.zero,
+        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        backgroundColor: _ctrlLocked
+            ? Colors.blue
+            : Theme.of(context).colorScheme.surfaceVariant,
+        foregroundColor: _ctrlLocked
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -385,6 +419,25 @@ class _TerminalPageState extends State<TerminalPage>
   void _sendKeyToTerminal(String key) {
     String? send;
 
+    // When Ctrl is locked, symbol keys /,|,~ send their Ctrl versions
+    if (_ctrlLocked) {
+      switch (key) {
+        case '/':
+          send = '\x1F';
+          break;
+        case '|':
+          send = '\x1C';
+          break;
+        case '~':
+          send = '\x1E';
+          break;
+      }
+      if (send != null) {
+        _terminalModel.sendVirtualKey(send);
+        return;
+      }
+    }
+
     switch (key) {
       case 'Esc':
         send = '\x1B';
@@ -394,6 +447,9 @@ class _TerminalPageState extends State<TerminalPage>
         break;
       case 'Ctrl+C':
         send = '\x03';
+        break;
+      case 'Ctrl+X':
+        send = '\x18';
         break;
 
       case '↑':
