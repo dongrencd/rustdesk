@@ -179,6 +179,19 @@ class MainActivity : FlutterActivity() {
                         result.success(false)
                     }
                 }
+                START_TERMINAL_KEEP_ALIVE -> {
+                    val serviceIntent = Intent(this, TerminalKeepAliveService::class.java)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(serviceIntent)
+                    } else {
+                        startService(serviceIntent)
+                    }
+                    result.success(true)
+                }
+                STOP_TERMINAL_KEEP_ALIVE -> {
+                    stopService(Intent(this, TerminalKeepAliveService::class.java))
+                    result.success(true)
+                }
                 "check_video_permission" -> {
                     mainService?.let {
                         result.success(it.checkMediaPermission())

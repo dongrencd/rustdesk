@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/dialog.dart';
+import 'package:flutter_hbb/mobile/terminal_keep_alive_manager.dart';
 import 'package:flutter_hbb/models/model.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/terminal_model.dart';
@@ -35,8 +36,24 @@ class TerminalPage extends StatefulWidget {
 
 class _TerminalPageState extends State<TerminalPage>
     with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
+  static final TerminalKeepAliveManager _keepAliveManager =
+      TerminalKeepAliveManager(
+    start: () async {
+      if (isAndroid) {
+        await gFFI.invokeMethod(AndroidChannel.kStartTerminalKeepAlive);
+      }
+    },
+    stop: () async {
+      if (isAndroid) {
+        await gFFI.invokeMethod(AndroidChannel.kStopTerminalKeepAlive);
+      }
+    },
+  );
+
   late FFI _ffi;
   late TerminalModel _terminalModel;
+  final Object _keepAliveKey = Object();
+  final UniqueKey _wakelockKey = UniqueKey();
   double? _cellHeight;
   double _sysKeyboardHeight = 0;
   Timer? _keyboardDebounce;
@@ -76,6 +93,8 @@ class _TerminalPageState extends State<TerminalPage>
       forceRelay: widget.forceRelay,
       connToken: widget.connToken,
     );
+    unawaited(_keepAliveManager.enable(_keepAliveKey));
+    WakelockManager.enable(_wakelockKey);
 
     // Create terminal model with specific terminal ID
     _terminalModel = TerminalModel(_ffi, widget.terminalId);
@@ -131,6 +150,8 @@ class _TerminalPageState extends State<TerminalPage>
     _terminalModel.dispose();
     _keyboardDebounce?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(_keepAliveManager.disable(_keepAliveKey));
+    WakelockManager.disable(_wakelockKey);
     super.dispose();
     TerminalConnectionManager.releaseConnection(widget.id);
   }

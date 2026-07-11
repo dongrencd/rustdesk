@@ -48,6 +48,8 @@ const val GET_START_ON_BOOT_OPT = "get_start_on_boot_opt"
 const val SET_START_ON_BOOT_OPT = "set_start_on_boot_opt"
 const val SYNC_APP_DIR_CONFIG_PATH = "sync_app_dir"
 const val GET_VALUE = "get_value"
+const val START_TERMINAL_KEEP_ALIVE = "start_terminal_keep_alive"
+const val STOP_TERMINAL_KEEP_ALIVE = "stop_terminal_keep_alive"
 
 const val KEY_IS_SUPPORT_VOICE_CALL = "KEY_IS_SUPPORT_VOICE_CALL"
 
